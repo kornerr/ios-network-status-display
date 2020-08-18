@@ -49,17 +49,43 @@ import Darwin
     case slideFromTopBackToTop
 }
 
+extension UIColor {
+  @objc class open dynamic var ttgDefaultText : UIColor {
+    if #available(iOS 13, *) {
+      // Meaning It's white in lighter mode and black in dark mode.
+      return UIColor.systemBackground
+    } else {
+      return UIColor.white
+    }
+  }
+
+  @objc class open dynamic var ttgDefaultBackground : UIColor {
+    if #available(iOS 13, *) {
+      // Meaning It's black in lighter mode and white in dark mode.
+      return UIColor.label.withAlphaComponent(0.8)
+    } else {
+      return UIColor.init(white: 0, alpha: 0.8)
+    }
+  }
+
+  @objc class open dynamic var ttgDefaultShadow : UIColor {
+    if #available(iOS 13, *) {
+      // Meaning It's black in lighter mode and white in dark mode.
+      return UIColor.label
+    } else {
+      return UIColor.black
+    }
+  }
+}
+
 open class TTGSnackbar: UIView {
     // MARK: - Class property.
     
     /// Snackbar default frame
-    public static var snackbarDefaultFrame: CGRect = CGRect(x: 0, y: 0, width: 320, height: 44)
+    @objc public static var snackbarDefaultFrame: CGRect = CGRect(x: 0, y: 0, width: 320, height: 44)
     
     /// Snackbar min height
-    public static var snackbarMinHeight: CGFloat = 44
-    
-    /// Snackbar icon imageView default width
-    public static var snackbarIconImageViewWidth: CGFloat = 32
+    @objc public static var snackbarMinHeight: CGFloat = 44
     
     // MARK: - Typealias.
     
@@ -83,7 +109,7 @@ open class TTGSnackbar: UIView {
     /// A property to make the snackbar auto dismiss on Swipe Gesture
     @objc open dynamic var shouldDismissOnSwipe: Bool = false
     
-    /// a property to enable left and right margin when using customContentView
+    /// A property to enable left and right margin when using customContentView
     @objc open dynamic var shouldActivateLeftAndRightMarginOnCustomContentView: Bool = false
     
     /// Action callback.
@@ -95,7 +121,7 @@ open class TTGSnackbar: UIView {
     /// Dismiss callback.
     @objc open dynamic var dismissBlock: TTGDismissBlock? = nil
     
-    /// Snackbar display duration. Default is Short - 1 second.
+    /// Snackbar display duration. Default is Short = 1 second.
     @objc open dynamic var duration: TTGSnackbarDuration = TTGSnackbarDuration.short
     
     /// Snackbar animation type. Default is SlideFromBottomBackToBottom.
@@ -107,12 +133,39 @@ open class TTGSnackbar: UIView {
     /// Corner radius: [0, height / 2]. Default is 4
     @objc open dynamic var cornerRadius: CGFloat = 4 {
         didSet {
-            if cornerRadius < 0 {
-                cornerRadius = 0
-            }
-            
+            cornerRadius = max(cornerRadius, 0)
             layer.cornerRadius = cornerRadius
             layer.masksToBounds = true
+        }
+    }
+    
+    /// Border color of snackbar. Default is clear.
+    @objc open dynamic var borderColor: UIColor? = .clear {
+        didSet {
+            layer.borderColor = borderColor?.cgColor
+        }
+    }
+    
+    /// Border width of snackbar. Default is 1.
+    @objc open dynamic var borderWidth: CGFloat = 1 {
+        didSet {
+            layer.borderWidth = borderWidth
+        }
+    }
+    
+    /// Top margin. Default is 4, only work when snackbar is at top
+    @objc open dynamic var topMargin: CGFloat = 4 {
+        didSet {
+            topMarginConstraint?.constant = topMargin
+            superview?.layoutIfNeeded()
+        }
+    }
+    
+    /// Bottom margin. Default is 4, only work when snackbar is at bottom
+    @objc open dynamic var bottomMargin: CGFloat = 4 {
+        didSet {
+            bottomMarginConstraint?.constant = -bottomMargin
+            superview?.layoutIfNeeded()
         }
     }
     
@@ -132,22 +185,6 @@ open class TTGSnackbar: UIView {
         }
     }
     
-    /// Bottom margin. Default is 4, only work when snackbar is at bottom
-    @objc open dynamic var bottomMargin: CGFloat = 4 {
-        didSet {
-            bottomMarginConstraint?.constant = -bottomMargin
-            superview?.layoutIfNeeded()
-        }
-    }
-    
-    /// Top margin. Default is 4, only work when snackbar is at top
-    @objc open dynamic var topMargin: CGFloat = 4 {
-        didSet {
-            topMarginConstraint?.constant = topMargin
-            superview?.layoutIfNeeded()
-        }
-    }
-    
     /// Content inset. Default is (0, 4, 0, 4)
     @objc open dynamic var contentInset: UIEdgeInsets = UIEdgeInsets.init(top: 0, left: 4, bottom: 0, right: 4) {
         didSet {
@@ -160,6 +197,16 @@ open class TTGSnackbar: UIView {
         }
     }
     
+    /// Label content inset. Default is (0, 0, 0, 0)
+    @objc open dynamic var messageContentInset: UIEdgeInsets = UIEdgeInsets.init(top: 0, left: 0, bottom: 0, right: 0) {
+        didSet {
+            messageLabel.contentInset = messageContentInset
+        }
+    }
+    
+    /// Main text label
+    @objc fileprivate(set) open dynamic var messageLabel: TTGSnackbarLabel!
+    
     /// Main text shown on the snackbar.
     @objc open dynamic var message: String = "" {
         didSet {
@@ -168,7 +215,7 @@ open class TTGSnackbar: UIView {
     }
     
     /// Message text color. Default is white.
-    @objc open dynamic var messageTextColor: UIColor = UIColor.white {
+    @objc open dynamic var messageTextColor: UIColor = UIColor.ttgDefaultText {
         didSet {
             messageLabel.textColor = messageTextColor
         }
@@ -188,6 +235,9 @@ open class TTGSnackbar: UIView {
         }
     }
     
+    /// Action button
+    @objc fileprivate(set) open dynamic var actionButton: UIButton!
+    
     /// Action button title.
     @objc open dynamic var actionText: String = "" {
         didSet {
@@ -202,6 +252,9 @@ open class TTGSnackbar: UIView {
         }
     }
     
+    /// Second action button
+    @objc fileprivate(set) open dynamic var secondActionButton: UIButton!
+    
     /// Second action button title.
     @objc open dynamic var secondActionText: String = "" {
         didSet {
@@ -209,15 +262,22 @@ open class TTGSnackbar: UIView {
         }
     }
     
+    /// Second action button image.
+    @objc open dynamic var secondActionIcon: UIImage? = nil {
+        didSet {
+            secondActionButton.setImage(secondActionIcon, for: UIControl.State())
+        }
+    }
+    
     /// Action button title color. Default is white.
-    @objc open dynamic var actionTextColor: UIColor = UIColor.white {
+    @objc open dynamic var actionTextColor: UIColor = UIColor.ttgDefaultText {
         didSet {
             actionButton.setTitleColor(actionTextColor, for: UIControl.State())
         }
     }
     
     /// Second action button title color. Default is white.
-    @objc open dynamic var secondActionTextColor: UIColor = UIColor.white {
+    @objc open dynamic var secondActionTextColor: UIColor = UIColor.ttgDefaultText {
         didSet {
             secondActionButton.setTitleColor(secondActionTextColor, for: UIControl.State())
         }
@@ -237,17 +297,17 @@ open class TTGSnackbar: UIView {
         }
     }
     
-    /// Action button max width, min = 44
+    /// All action button max width, min = 44
     @objc open dynamic var actionMaxWidth: CGFloat = 64 {
         didSet {
-            actionMaxWidth = actionMaxWidth < 44 ? 44 : actionMaxWidth
+            actionMaxWidth = max(actionMaxWidth, 44)
             actionButtonMaxWidthConstraint?.constant = actionButton.isHidden ? 0 : actionMaxWidth
             secondActionButtonMaxWidthConstraint?.constant = secondActionButton.isHidden ? 0 : actionMaxWidth
             layoutIfNeeded()
         }
     }
     
-    /// Action button text number of lines. Default is 1
+    /// All action button text number of lines. Default is 1
     @objc open dynamic var actionTextNumberOfLines: Int = 1 {
         didSet {
             actionButton.titleLabel?.numberOfLines = actionTextNumberOfLines
@@ -255,6 +315,9 @@ open class TTGSnackbar: UIView {
             layoutIfNeeded()
         }
     }
+    
+    /// Icon imageView
+    @objc fileprivate(set) open dynamic var iconImageView: UIImageView!
     
     /// Icon image
     @objc open dynamic var icon: UIImage? = nil {
@@ -270,6 +333,29 @@ open class TTGSnackbar: UIView {
         }
     }
     
+    /// Icon background color. Default is clear.
+    @objc open dynamic var iconBackgroundColor: UIColor? = .clear {
+        didSet {
+            iconImageView.backgroundColor = iconBackgroundColor
+        }
+    }
+    
+    /// Icon tint color
+    @objc open dynamic var iconTintColor: UIColor! = .clear {
+        didSet {
+            iconImageView.tintColor = iconTintColor
+        }
+    }
+    
+    /// Icon width
+    @objc open dynamic var iconImageViewWidth: CGFloat = 32 {
+        didSet {
+            iconImageViewWidth = max(iconImageViewWidth, 32)
+            iconImageViewWidthConstraint?.constant = iconImageView.isHidden ? 0 : iconImageViewWidth
+            layoutIfNeeded()
+        }
+    }
+    
     /// Custom container view
     @objc open dynamic var containerView: UIView?
     
@@ -277,11 +363,14 @@ open class TTGSnackbar: UIView {
     @objc open dynamic var customContentView: UIView?
     
     /// SeparateView background color
-    @objc open dynamic var separateViewBackgroundColor: UIColor = UIColor.gray {
+    @objc open dynamic var separateViewBackgroundColor: UIColor = UIColor.systemGray {
         didSet {
             separateView.backgroundColor = separateViewBackgroundColor
         }
     }
+    
+    /// ActivityIndicatorView
+    @objc fileprivate(set) open dynamic var activityIndicatorView: UIActivityIndicatorView!
     
     /// ActivityIndicatorViewStyle
     @objc open dynamic var activityIndicatorViewStyle: UIActivityIndicatorView.Style {
@@ -306,18 +395,13 @@ open class TTGSnackbar: UIView {
     /// Animation SpringWithDamping. Default is 0.7
     @objc open dynamic var animationSpringWithDamping: CGFloat = 0.7
     
-    /// Animation initialSpringVelocity
+    /// Animation initialSpringVelocity. Default is 5
     @objc open dynamic var animationInitialSpringVelocity: CGFloat = 5
     
     // MARK: - Private property.
     
     fileprivate var contentView: UIView!
-    fileprivate var iconImageView: UIImageView!
-    fileprivate var messageLabel: UILabel!
     fileprivate var separateView: UIView!
-    fileprivate var actionButton: UIButton!
-    fileprivate var secondActionButton: UIButton!
-    fileprivate var activityIndicatorView: UIActivityIndicatorView!
     
     /// Timer to dismiss the snackbar.
     fileprivate var dismissTimer: Timer? = nil
@@ -478,7 +562,7 @@ public extension TTGSnackbar {
         
         separateView.isHidden = actionButton.isHidden
         
-        iconImageViewWidthConstraint?.constant = iconImageView.isHidden ? 0 : TTGSnackbar.snackbarIconImageViewWidth
+        iconImageViewWidthConstraint?.constant = iconImageView.isHidden ? 0 : iconImageViewWidth
         actionButtonMaxWidthConstraint?.constant = actionButton.isHidden ? 0 : actionMaxWidth
         secondActionButtonMaxWidthConstraint?.constant = secondActionButton.isHidden ? 0 : actionMaxWidth
         
@@ -491,37 +575,40 @@ public extension TTGSnackbar {
                                                            toItem: self, attribute: .top, multiplier: 1, constant: contentInset.top)
         contentViewBottomConstraint = NSLayoutConstraint.init(item: finalContentView!, attribute: .bottom, relatedBy: .equal,
                                                               toItem: self, attribute: .bottom, multiplier: 1, constant: -contentInset.bottom)
-        contentViewLeftConstraint = NSLayoutConstraint.init(item: finalContentView!, attribute: .left, relatedBy: .equal,
-                                                            toItem: self, attribute: .left, multiplier: 1, constant: contentInset.left)
-        contentViewRightConstraint = NSLayoutConstraint.init(item: finalContentView!, attribute: .right, relatedBy: .equal,
-                                                             toItem: self, attribute: .right, multiplier: 1, constant: -contentInset.right)
+        contentViewLeftConstraint = NSLayoutConstraint.init(item: finalContentView!, attribute: .leading, relatedBy: .equal,
+                                                            toItem: self, attribute: .leading, multiplier: 1, constant: contentInset.left)
+        contentViewRightConstraint = NSLayoutConstraint.init(item: finalContentView!, attribute: .trailing, relatedBy: .equal,
+                                                             toItem: self, attribute: .trailing, multiplier: 1, constant: -contentInset.right)
         
         addConstraints([contentViewTopConstraint!, contentViewBottomConstraint!, contentViewLeftConstraint!, contentViewRightConstraint!])
         
+        // Get current window
+        let currentWindow: UIWindow? = UIApplication.shared.windows.filter {$0.isKeyWindow}.first
+        
         // Get super view to show
-        if let superView = containerView ?? UIApplication.shared.delegate?.window ?? UIApplication.shared.keyWindow {
+        if let superView = containerView ?? currentWindow {
             superView.addSubview(self)
             
             // Left margin constraint
             if #available(iOS 11.0, *) {
                 leftMarginConstraint = NSLayoutConstraint.init(
-                    item: self, attribute: .left, relatedBy: .equal,
-                    toItem: superView.safeAreaLayoutGuide, attribute: .left, multiplier: 1, constant: leftMargin)
+                    item: self, attribute: .leading, relatedBy: .equal,
+                    toItem: superView.safeAreaLayoutGuide, attribute: .leading, multiplier: 1, constant: leftMargin)
             } else {
                 leftMarginConstraint = NSLayoutConstraint.init(
-                    item: self, attribute: .left, relatedBy: .equal,
-                    toItem: superView, attribute: .left, multiplier: 1, constant: leftMargin)
+                    item: self, attribute: .leading, relatedBy: .equal,
+                    toItem: superView, attribute: .leading, multiplier: 1, constant: leftMargin)
             }
             
             // Right margin constraint
             if #available(iOS 11.0, *) {
                 rightMarginConstraint = NSLayoutConstraint.init(
-                    item: self, attribute: .right, relatedBy: .equal,
-                    toItem: superView.safeAreaLayoutGuide, attribute: .right, multiplier: 1, constant: -rightMargin)
+                    item: self, attribute: .trailing, relatedBy: .equal,
+                    toItem: superView.safeAreaLayoutGuide, attribute: .trailing, multiplier: 1, constant: -rightMargin)
             } else {
                 rightMarginConstraint = NSLayoutConstraint.init(
-                    item: self, attribute: .right, relatedBy: .equal,
-                    toItem: superView, attribute: .right, multiplier: 1, constant: -rightMargin)
+                    item: self, attribute: .trailing, relatedBy: .equal,
+                    toItem: superView, attribute: .trailing, multiplier: 1, constant: -rightMargin)
             }
             
             // Bottom margin constraint
@@ -580,8 +667,13 @@ public extension TTGSnackbar {
             
             // Show
             showWithAnimation()
+
+            // Accessibility announcement.
+            if UIAccessibility.isVoiceOverRunning {
+              UIAccessibility.post(notification: .announcement, argument: self.message)
+            }
         } else {
-            fatalError("TTGSnackbar needs a keyWindows to display.")
+            debugPrint("TTGSnackbar needs a keyWindows to display.")
         }
     }
     
@@ -666,7 +758,7 @@ public extension TTGSnackbar {
      */
     fileprivate func dismissAnimated(_ animated: Bool) {
         // If the dismiss timer is nil, snackbar is dismissing or not ready to dismiss.
-        if dismissTimer == nil {
+        if dismissTimer == nil || superview == nil {
             return
         }
         
@@ -768,14 +860,14 @@ private extension TTGSnackbar {
                                                name: UIResponder.keyboardWillHideNotification, object: nil)
         
         translatesAutoresizingMaskIntoConstraints = false
-        backgroundColor = UIColor.init(white: 0, alpha: 0.8)
+        backgroundColor = UIColor.ttgDefaultBackground
         layer.cornerRadius = cornerRadius
         layer.shouldRasterize = true
         layer.rasterizationScale = UIScreen.main.scale
         
         layer.shadowOpacity = 0.4
         layer.shadowRadius = 2
-        layer.shadowColor = UIColor.black.cgColor
+        layer.shadowColor = UIColor.ttgDefaultShadow.cgColor
         layer.shadowOffset = CGSize(width: 0, height: 2)
         
         let contentView = UIView()
@@ -791,11 +883,11 @@ private extension TTGSnackbar {
         iconImageView.contentMode = iconContentMode
         contentView.addSubview(iconImageView)
         
-        let messageLabel = UILabel()
+        let messageLabel = TTGSnackbarLabel()
         self.messageLabel = messageLabel
         messageLabel.accessibilityIdentifier = "messageLabel"
         messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        messageLabel.textColor = UIColor.white
+        messageLabel.textColor = UIColor.ttgDefaultText
         messageLabel.font = messageTextFont
         messageLabel.backgroundColor = UIColor.clear
         messageLabel.lineBreakMode = .byTruncatingTail
@@ -883,7 +975,7 @@ private extension TTGSnackbar {
         
         iconImageViewWidthConstraint = NSLayoutConstraint.init(
             item: iconImageView, attribute: .width, relatedBy: .equal,
-            toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: TTGSnackbar.snackbarIconImageViewWidth)
+            toItem: nil, attribute: .notAnAttribute, multiplier: 1, constant: iconImageViewWidth)
         
         actionButtonMaxWidthConstraint = NSLayoutConstraint.init(
             item: actionButton, attribute: .width, relatedBy: .lessThanOrEqual,
@@ -1043,3 +1135,22 @@ private extension TTGSnackbar {
     }
 }
 
+open class TTGSnackbarLabel: UILabel {
+    
+    @objc open dynamic var contentInset: UIEdgeInsets = UIEdgeInsets.init(top: 0, left: 0, bottom: 0, right: 0) {
+        didSet {
+            drawText(in: self.frame)
+        }
+    }
+    
+    override open func drawText(in rect: CGRect) {
+        super.drawText(in: rect.inset(by: contentInset))
+    }
+    
+    override open var intrinsicContentSize: CGSize {
+        let size = super.intrinsicContentSize
+        return CGSize(width: size.width + contentInset.left + contentInset.right,
+                      height: size.height + contentInset.top + contentInset.bottom)
+    }
+    
+}

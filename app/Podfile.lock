@@ -1,21 +1,24 @@
 PODS:
-  - Anchorage (4.3.1)
-  - TTGSnackbar (1.9.0)
+  - Anchorage (4.4.0)
+  - ReachabilitySwift (5.0.0)
+  - TTGSnackbar (1.10.3)
 
 DEPENDENCIES:
-  - Anchorage
-  - TTGSnackbar
+  - Anchorage (= 4.4.0)
+  - ReachabilitySwift (= 5.0.0)
+  - TTGSnackbar (= 1.10.3)
 
 SPEC REPOS:
   https://github.com/CocoaPods/Specs.git:
-    - TTGSnackbar
-  trunk:
     - Anchorage
+    - ReachabilitySwift
+    - TTGSnackbar
 
 SPEC CHECKSUMS:
-  Anchorage: a187da0bc9b07440637d42c8744b8c82a4490295
-  TTGSnackbar: 7408a90b9739d296b933804287dd3ef6dadf2725
+  Anchorage: d7f02c4f9425b537053237aab11ae97e59b55f36
+  ReachabilitySwift: 985039c6f7b23a1da463388634119492ff86c825
+  TTGSnackbar: 97c033600de8a9c8f4a093f25a08543a03946bcc
 
-PODFILE CHECKSUM: 532848c95f5304115b8d1289add76563105b8350
+PODFILE CHECKSUM: 39c1bfde5166bcfa7aeaff055c528cea0caffbe9
 
 COCOAPODS: 1.9.3

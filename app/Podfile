@@ -4,6 +4,7 @@ platform :ios, '10.0'
 
 target 'status' do
     use_frameworks!
-    pod 'Anchorage'#, '4.3.1'
-    pod 'TTGSnackbar'#, '1.9.0'
+    pod 'Anchorage', '4.4.0'
+    pod 'TTGSnackbar', '1.10.3'
+    pod 'ReachabilitySwift', '5.0.0'
 end
